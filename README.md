@@ -58,9 +58,9 @@ A scalable end-to-end testing suite built with **Python**, **Playwright**, and *
    ```bash
    pytest tests/test_home_and_login.py
    
-3. Run specific tests using marks e.g.('login') in /tests directory:
+3. Run specific tests using marks e.g.('login_only') in /tests directory:
    ```bash
-   pytest tests -m "login"
+   pytest tests -m "login_only"
    
 ---
 #### Github Branching Strategy
