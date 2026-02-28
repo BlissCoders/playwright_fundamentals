@@ -58,7 +58,7 @@ A scalable end-to-end testing suite built with **Python**, **Playwright**, and *
    ```bash
    pytest tests/test_first_session.py
    
-3. Run specific tests using marks e.g.('login_only') in /tests directory:
+3. Run specific tests using marks e.g.('login') in /tests directory:
    ```bash
-   pytest tests -m "login_only"
+   pytest tests -m "login"
 
