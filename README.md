@@ -41,4 +41,4 @@ A scalable end-to-end testing suite built with **Python**, **Playwright**, and *
 ### Installation
 1. Install the [Playwright Pytest plugin](https://playwright.dev):
    ```bash
-   pip install pytest-playwright
+   pip install -r requirements.txt
