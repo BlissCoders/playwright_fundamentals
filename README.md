@@ -61,4 +61,20 @@ A scalable end-to-end testing suite built with **Python**, **Playwright**, and *
 3. Run specific tests using marks e.g.('login_only') in /tests directory:
    ```bash
    pytest tests -m "login_only"
+   
+---
+#### Github Branching Strategy
+**Step 1: Feature to Develop**
+* When your work in the feature-branch is done:
+  1. Open a PR on GitHub.
+  2. Set the base to develop and the compare to feature-branch.
+  3. Once the tests (CI) pass and your team approves, merge it into develop.
+
+**Step 2: Develop to Master**
+* To move those changes to production (master):
+  1. Open a new Pull Request on GitHub.
+  2. Set the base to master and the compare to develop.
+  3. This PR will show every feature that was added to develop since the last release.
+  4. Once approved and the CI passes, merge it. master is now updated.
+
 
