@@ -32,6 +32,12 @@ A scalable end-to-end testing suite built with **Python**, **Playwright**, and *
 
 ---
 
+### 7. Documentation Links
+*   [pytest](https://docs.pytest.org/en/stable/getting-started.html)
+*   [pytest-html](https://pytest-html.readthedocs.io/en/latest/)
+
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -42,3 +48,17 @@ A scalable end-to-end testing suite built with **Python**, **Playwright**, and *
 1. Install the [Playwright Pytest plugin](https://playwright.dev):
    ```bash
    pip install -r requirements.txt
+   
+### Execution
+1. Run all tests in /tests directory:
+   ```bash
+   pytest tests
+
+2. Run specific test in /tests directory:
+   ```bash
+   pytest tests/test_first_session.py
+   
+3. Run specific tests using marks e.g.('login') in /tests directory:
+   ```bash
+   pytest tests -m "login"
+
