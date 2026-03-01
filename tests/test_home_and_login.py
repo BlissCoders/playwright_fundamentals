@@ -1,7 +1,6 @@
 import pytest
 from dotenv import load_dotenv
-
-from src.pages.dashboard_page import DashboardPage
+from src.pages.home_page import HomePage
 from src.pages.login_page import LoginPage
 
 
@@ -9,35 +8,15 @@ class TestHomeAndLogin:
 
     #Load Environment Variables
     load_dotenv()
-    @pytest.mark.login
-    def test_login_with_valid_credentials(self, playwright_page):
-        """
-        Test Case: Login with valid credentials
-                   Should be able to login with valid credentials
-        Steps:
-        1. Navigate to 'https://blisscoders.pythonanywhere.com/login'
-        2. Enter valid username: admin@test.com
-        3. Enter valid password: Password123
-        4. Click login button
-        5. Should see the message: 'Successful login!'
-        """
-        login_page = LoginPage.open(page=playwright_page)
-        login_page.login(_username="admin@test.com", _password="Password123")
 
     @pytest.mark.login
-    def test_login_with_invalid_credentials(self, playwright_page):
-        """
-        Test Case: Login with invalid credentials
-                   Should not be able to login with invalid credentials
-        Steps:
-        1. Navigate to 'https://blisscoders.pythonanywhere.com/login'
-        2. Enter valid username: invalid_user
-        3. Enter valid password: invalid_password
-        4. Click login button
-        5. Should not see the message: 'Successful login!'
-        """
+    @pytest.mark.parametrize("username, password",[
+        pytest.param("admin@test.com","Password123", id="valid_user"),
+        pytest.param("invalid@test.com","wrongpassword", id="invalid_user")
+    ])
+    def test_login_scenarios(self, playwright_page, username, password):
         login_page = LoginPage.open(page=playwright_page)
-        login_page.login(_username="invalid_user", _password="invalid_password")
+        login_page.login(_username=username, _password=password)
 
     @pytest.mark.home
     def test_home_screen(self, playwright_page):
@@ -54,9 +33,10 @@ class TestHomeAndLogin:
             - Async loading behavior
             - Dynamic filtering
             - UI testing best practices
+            - something
         """
-        dashboard_page = DashboardPage.open(page=playwright_page)
-        dashboard_page.verify_title()
-        dashboard_page.verify_header_text()
-        dashboard_page.verify_instruction_text()
-        dashboard_page.verify_bullet_items()
+        home_page = HomePage.open(page=playwright_page)
+        home_page.verify_title()
+        home_page.verify_header_text()
+        home_page.verify_instruction_text()
+        home_page.verify_bullet_items()

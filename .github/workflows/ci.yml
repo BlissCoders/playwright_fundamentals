@@ -1,0 +1,57 @@
+name: Playwright Tests
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master, develop ]
+  workflow_dispatch:
+    inputs:
+      test_filter:
+        description: 'Run specific tests (e.g., -k "login" or -m "smoke")'
+        required: false
+        default: ''
+      record_video:
+        description: 'Record video for failed tests?'
+        type: boolean
+        default: false
+
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.4'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Playwright Browsers
+        run: playwright install --with-deps
+
+      - name: Run pytest
+        # Mapping inputs to environment variables for conftest.py
+        env:
+          RECORD_VIDEO: ${{github.event.inputs.record_video || 'false' }}
+
+        # Use the input if provided, otherwise run all tests in the tests folder
+        run: pytest -v -s --disable-warnings ${{ github.event.inputs.test_filter }} tests
+
+      - name: Upload Artifacts
+        if: always() # Ensures artifacts upload even if tests fail
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: |
+            tests-results/videos/
+            tests-results/screenshots/
+            tests-results/reports/*.html
+          if-no-files-found: warn
+          retention-days: 7
