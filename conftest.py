@@ -6,6 +6,44 @@ import pytest
 from playwright.sync_api import sync_playwright
 
 
+def pytest_addoption(parser):
+    parser.addoption(
+        "--tc",
+        action="store",
+        default=None,
+        help="Run tests with a specific TC id used in @pytest.mark.TC('<id>')",
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    selected_tc = config.getoption("--tc")
+
+    kept = []
+    deselected = []
+
+    for item in items:
+        tc_mark = item.get_closest_marker("TC")
+        tc_id = tc_mark.args[0] if tc_mark and tc_mark.args else None
+
+        if isinstance(tc_id, str) and tc_id:
+            # Backward-compatible alias so `-m TC3` still works.
+            config.addinivalue_line("markers", f"{tc_id}: auto-generated TC marker alias")
+            item.add_marker(tc_id)
+
+        if not selected_tc:
+            kept.append(item)
+            continue
+
+        if tc_id == selected_tc:
+            kept.append(item)
+        else:
+            deselected.append(item)
+
+    if selected_tc and deselected:
+        config.hook.pytest_deselected(items=deselected)
+        items[:] = kept
+
+
 @pytest.fixture
 def playwright_page(request):
     test_name = request.node.name
