@@ -20,9 +20,10 @@ def playwright_page(request):
 
     # Boolean flag for easier reading
     save_recorded_video = os.environ.get("RECORD_VIDEO", "false").lower() == "true"
+    headless_env = os.environ.get("HEADLESS", "true").lower() == "true"
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(headless=headless_env)
 
         # Always enable recording if the ENV is true so Playwright captures the session
         context = browser.new_context(
