@@ -20,9 +20,12 @@ class TestInteraction:
 
         print("Test complete, performing cleanup...")
 
+
+
     @pytest.mark.interactions
     @pytest.mark.TC1
     def test_sortable_interactions(self, playwright_page):
+
         self.inter_page.verify_text_visible("Sortable")
 
     @pytest.mark.interactions

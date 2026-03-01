@@ -6,53 +6,15 @@ import pytest
 from playwright.sync_api import sync_playwright
 
 
-def pytest_addoption(parser):
-    parser.addoption(
-        "--tc",
-        action="store",
-        default=None,
-        help="Run tests with a specific TC id used in @pytest.mark.TC('<id>')",
-    )
-
-
-def pytest_collection_modifyitems(config, items):
-    selected_tc = config.getoption("--tc")
-
-    kept = []
-    deselected = []
-
-    for item in items:
-        tc_mark = item.get_closest_marker("TC")
-        tc_id = tc_mark.args[0] if tc_mark and tc_mark.args else None
-
-        if isinstance(tc_id, str) and tc_id:
-            # Backward-compatible alias so `-m TC3` still works.
-            config.addinivalue_line("markers", f"{tc_id}: auto-generated TC marker alias")
-            item.add_marker(tc_id)
-
-        if not selected_tc:
-            kept.append(item)
-            continue
-
-        if tc_id == selected_tc:
-            kept.append(item)
-        else:
-            deselected.append(item)
-
-    if selected_tc and deselected:
-        config.hook.pytest_deselected(items=deselected)
-        items[:] = kept
-
-
 @pytest.fixture
 def playwright_page(request):
     test_name = request.node.name
     root_dir = request.config.rootpath
 
-    video_path = os.path.join(root_dir, "tests-results", "videos",str(test_name))
-    screenshot_path = os.path.join(root_dir,"tests-results","screenshots", str(test_name))
+    video_path = os.path.join(root_dir, "tests-results", "videos", str(test_name))
+    screenshot_path = os.path.join(root_dir, "tests-results", "screenshots", str(test_name))
 
-    #Create directories
+    # Create directories
     os.makedirs(video_path, exist_ok=True)
     os.makedirs(screenshot_path, exist_ok=True)
 
@@ -100,17 +62,19 @@ def playwright_page(request):
             # Now it's safe to close browser
             browser.close()
 
+
 def pytest_configure(config):
     # This overrides the .ini setting with a timestamped filename
     now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     # Create report directory
     root_dir = config.rootpath
-    report_path = os.path.join(root_dir, "tests-results","reports")
+    report_path = os.path.join(root_dir, "tests-results", "reports")
     os.makedirs(report_path, exist_ok=True)
 
     config.option.htmlpath = f"{report_path}/report_{now}.html"
     config.option.self_contained_html = True
+
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
