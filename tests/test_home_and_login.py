@@ -1,8 +1,6 @@
 import pytest
 from dotenv import load_dotenv
-from playwright.sync_api import expect
-
-from src.pages.dashboard_page import DashboardPage
+from src.pages.home_page import HomePage
 from src.pages.login_page import LoginPage
 
 
@@ -36,8 +34,8 @@ class TestHomeAndLogin:
             - Dynamic filtering
             - UI testing best practices
         """
-        dashboard_page = DashboardPage.open(page=playwright_page)
-        dashboard_page.verify_title()
-        dashboard_page.verify_header_text()
-        dashboard_page.verify_instruction_text()
-        dashboard_page.verify_bullet_items()
+        home_page = HomePage.open(page=playwright_page)
+        home_page.verify_title()
+        home_page.verify_header_text()
+        home_page.verify_instruction_text()
+        home_page.verify_bullet_items()

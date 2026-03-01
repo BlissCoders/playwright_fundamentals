@@ -3,7 +3,7 @@ from typing import List
 from playwright.sync_api import expect, Locator
 
 
-class DashboardPage:
+class HomePage:
 
 
     def __init__(self, page):
@@ -28,7 +28,7 @@ class DashboardPage:
 
 
     @classmethod
-    def open(cls,page,url:str="https://blisscoders.pythonanywhere.com/")->'DashboardPage':
+    def open(cls,page,url:str="https://blisscoders.pythonanywhere.com/")->'HomePage':
         page.goto(url)
         return cls(page)
 
