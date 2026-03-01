@@ -33,6 +33,7 @@ class TestHomeAndLogin:
             - Async loading behavior
             - Dynamic filtering
             - UI testing best practices
+            - something
         """
         home_page = HomePage.open(page=playwright_page)
         home_page.verify_title()
