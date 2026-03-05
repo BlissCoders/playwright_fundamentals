@@ -49,19 +49,17 @@ jobs:
         # Use the input if provided, otherwise run all tests in the tests folder
         # run: pytest -v -s --disable-warnings ${{ github.event.inputs.test_filter }} tests
         run: |
-        # Standard Bash 'if' for parallel logic
+          # Use standard bash if-else
           if [ "${{ inputs.run_parallel }}" = "true" ]; then
             PARALLEL_ARGS="-n auto"
-            echo "Parallel mode enabled"
           else
             PARALLEL_ARGS=""
-            echo "Sequential mode enabled"
           fi
           
-        # Execute pytest with dynamic args
-        # --video handles the environment variable logic directly
+          # Run pytest with the filter and parallel args
+          # We add --tracing retain-on-failure for better debugging
           pytest -v -s --disable-warnings $PARALLEL_ARGS \
-            --video $RECORD_VIDEO \
+            --tracing retain-on-failure \
             ${{ inputs.test_filter }} tests/
 
       - name: Upload Artifacts
