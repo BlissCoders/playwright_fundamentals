@@ -15,7 +15,8 @@ class TestInteraction:
 
     @pytest.fixture(autouse=True)
     def before_each_test(self, playwright_page: Page):
-        self.inter_page = InteractionsPage.open(page=playwright_page)
+        self.page = playwright_page
+        self.inter_page = InteractionsPage.open(self.page)
         self.inter_page.navigate_to("Interactions")
         yield
 
@@ -65,8 +66,9 @@ class TestInteraction:
     @pytest.mark.interactions
     @pytest.mark.TC9
     @pytest.mark.parametrize("element_test, autocomplete_value", [
-        pytest.param("Autocomplete", "Dheo Claveria Testing", id="1"),
-        pytest.param("Autocomplete", "Bliss Coders Assignment", id="2")
+        pytest.param("Autocomplete", "Playwright", id="1"),
+        pytest.param("Autocomplete", "Cypress", id="2"),
+        pytest.param("Autocomplete", "Python", id="3")
     ])
     def test_auto_complete_elements_interactions(self, element_test, autocomplete_value):
         print("Testing Autocomplete elements interactions...")
@@ -75,7 +77,11 @@ class TestInteraction:
 
         self.inter_page.verify_element_visible(self.inter_page.lbl_text(element_test))
 
-        self.inter_page.enter_text(self.inter_page.txt_autocomplete(), autocomplete_value)
+        # since the element is not "select" we cannot use the selection_option, so simuilate ko nalang
+        self.inter_page.enter_text(self.inter_page.txt_autocomplete(), "P")
+        self.inter_page.click_element_by_text(autocomplete_value, ".ui-autocomplete li")
+        self.inter_page.verify_element_value(self.inter_page.txt_autocomplete(), autocomplete_value)
+
         sleep(3)
 
         self.inter_page.verify_element_attribute(
@@ -109,7 +115,7 @@ class TestInteraction:
         self.inter_page.verify_element_visible(self.inter_page.lbl_text(element_test))
 
         self.inter_page.verify_element_attribute(
-            self.inter_page.get_locator_by(locator_type="role", value="progressbar"),
+            self.inter_page.get_locator_by(locator_type="role", locator_value="progressbar"),
             attr_name="aria-valuenow",
             expected_attr_value=progress_bar_value)
 
@@ -135,3 +141,78 @@ class TestInteraction:
         self.inter_page.verify_element_not_visible(self.inter_page.lbl_text("Tab 1 content"))
         sleep(1.5)
         self.inter_page.verify_element_visible(self.inter_page.tab_selected("1"))
+
+    @pytest.mark.interactions
+    @pytest.mark.TC13
+    def test_tooltips_elements_interactions(self):
+        print("Testing Tooltips elements interactions...")
+
+        self.inter_page.verify_text_visible("Tooltips")
+        self.inter_page.get_locator_by(locator_type="text", locator_value="Hover over me").hover(force=True)
+        sleep(1.5)
+        tooltip = self.inter_page.get_locator_by(
+            locator_type="text",
+            locator_value="Tooltip text here",
+            parent_selector=".ui-tooltip-content"
+        )
+        self.inter_page.verify_element_visible(tooltip)
+
+    @pytest.mark.interactions
+    @pytest.mark.TC14
+    def test_menu_elements_interactions(self):
+        print("Testing Menu elements interactions...")
+
+        self.inter_page.verify_text_visible("Menu", is_exact_text=True)
+
+        for index, menu_item in enumerate(["Dashboard", "Users", "Settings", ], start=1):
+            attr_value = f"ui-id-{index}"
+
+            self.inter_page.click_element_by_text(menu_item, parent_selector=f"#{attr_value}")
+
+            self.inter_page.verify_element_attribute(
+                self.inter_page.menu_menu(),
+                attr_name="aria-activedescendant",
+                expected_attr_value=attr_value
+            )
+
+    @pytest.mark.interactions
+    @pytest.mark.TC15
+    def test_select_menu_elements_interactions(self):
+        print("Testing Select Menu elements interactions...")
+
+        self.inter_page.verify_text_visible("Select Menu", is_exact_text=True)
+
+        for select_menu_item in ["Playwright", "QA", "Automation"]:
+            print(f" Select Menu Item to be selected : {select_menu_item}")
+            # since the element is not "select" we cannot use the selection_option, so simuilate ko nalang
+            self.inter_page.cmb_select_menu().click()
+            self.inter_page.cmb_item_select_menu().filter(has_text=select_menu_item).click()
+            expect(self.inter_page.cmb_item_select_menu_value()).to_have_text(select_menu_item)
+            sleep(1.2)
+
+    @pytest.mark.interactions
+    @pytest.mark.TC16
+    def test_shadow_dom_demo_elements_interactions(self):
+        print("Testing Shadow DOM Demo elements interactions...")
+        self.inter_page.verify_text_visible("Shadow DOM Demo")
+
+        self.inter_page.click_element_by_text("Click Me", parent_selector="#shadow-host")
+
+        result_text = self.inter_page.get_locator_by(
+            "text",
+            "Button clicked inside Shadow DOM!",
+            "#shadow-host")
+
+        self.inter_page.verify_element_visible(result_text)
+
+    @pytest.mark.interactions
+    @pytest.mark.TC17
+    def test_upload_file_elements_interactions(self):
+        print("Testing Upload File elements interactions...")
+
+        self.inter_page.verify_text_visible("File Upload Demo")
+
+        self.inter_page.upload_file(self.inter_page.txt_upload(), "test_upload_file", "jpg")
+        self.inter_page.click_element(self.inter_page.btn_upload())
+        self.page.wait_for_load_state()
+        self.inter_page.verify_text_visible("Method Not Allowed")

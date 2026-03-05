@@ -1,4 +1,5 @@
 import re
+from pathlib import Path
 from time import sleep
 
 from playwright.sync_api import Locator, Page, expect
@@ -22,8 +23,8 @@ class InteractionsPage:
     def nav_menu_items(self) -> Locator:
         return self.page.locator(f'//nav[@class="navbar"]/a[@href]')
 
-    def lbl_text(self, text) -> Locator:
-        return self.page.get_by_text(text)
+    def lbl_text(self, text, is_exact_value: bool = None) -> Locator:
+        return self.page.get_by_text(text, exact=is_exact_value)
 
     def txt_autocomplete(self):
         return self.page.locator("//input[@id='autocomplete']")
@@ -31,30 +32,44 @@ class InteractionsPage:
     def txt_date_picker(self):
         return self.page.locator("//input[@id='datepicker' and @class='hasDatepicker']")
 
-    def tab_selected(self, tabNum: str) -> Locator:
-        return self.page.locator(f'//li[@role="tab" and @aria-controls="tabs-{tabNum}"]')
+    def tab_selected(self, tab_num: str) -> Locator:
+        return self.page.locator(f'//li[@role="tab" and @aria-controls="tabs-{tab_num}"]')
 
-    def get_locator_by(self: Page, locator_type: str, value: str) -> Locator:
-        """
-        Returns a locator based on the type specified.
-        Types: 'alt_text', 'label', 'placeholder', 'role', 'test_id', 'text', 'title'
-        """
-        if locator_type == "alt_text":
-            return self.page.get_by_alt_text(value)
-        elif locator_type == "label":
-            return self.page.get_by_label(value)
-        elif locator_type == "placeholder":
-            return self.page.get_by_placeholder(value)
-        elif locator_type == "role":
-            return self.page.get_by_role(value)
-        elif locator_type == "test_id":
-            return self.page.get_by_test_id(value)
-        elif locator_type == "text":
-            return self.page.get_by_text(value)
-        elif locator_type == "title":
-            return self.page.get_by_title(value)
-        else:
-            return self.locator(value)
+    def menu_menu(self) -> Locator:
+        return self.page.locator("ul#menu")
+
+    def cmb_select_menu(self, ) -> Locator:
+        return self.page.locator("#selectmenu-button")
+
+    def cmb_item_select_menu(self, ) -> Locator:
+        return self.page.locator("#selectmenu-menu .ui-menu-item-wrapper")
+
+    def cmb_item_select_menu_value(self, ) -> Locator:
+        return self.page.locator(".ui-selectmenu-text")
+
+    def txt_upload(self) -> Locator:
+        return self.page.get_by_test_id("file-input")
+
+    def btn_upload(self) -> Locator:
+        return self.page.locator("//button[@data-testid='btn-upload']")
+
+    def get_locator_by(self, locator_type: str, locator_value: str, parent_selector: str = None) -> Locator:
+        scope = self.page.locator(parent_selector) if parent_selector else self.page
+
+        locators = {
+            "alt_text": scope.get_by_alt_text,
+            "label": scope.get_by_label,
+            "placeholder": scope.get_by_placeholder,
+            "role": scope.get_by_role,
+            "test_id": scope.get_by_test_id,
+            "text": scope.get_by_text,
+            "title": scope.get_by_title,
+            "xpath": scope.locator,
+            "css": scope.locator,
+        }
+
+        locator_func = locators.get(locator_type, scope.locator)
+        return locator_func(locator_value)
 
     # Commands
 
@@ -76,30 +91,48 @@ class InteractionsPage:
         self.verify_element_visible(locator)
         locator.focus()
         expect(locator).to_be_focused()
+        return locator
 
     def click_element(self, locator: Locator):
         print(f"Click Element {locator}")
         self.verify_element_visible(locator)
         locator.scroll_into_view_if_needed()
         locator.click()
+        return locator
+
+    def click_element_by_text(self, text_to_click: str, parent_selector: str = None):
+        print(f"Click Element {text_to_click} with selector '{parent_selector}'")
+        locator = self.get_locator_by("text", text_to_click, parent_selector)
+        self.verify_element_visible(locator)
+        locator.click()
 
     def enter_text(self, locator: Locator, value: str):
         print(f"Enter Text {locator}")
         self.focus_element(locator)
+        locator.fill("")
         locator.fill(value)
-        expect(locator).to_have_value(re.compile(r".+"))
-        self.page.keyboard.press("Enter", delay=2500)
+        self.verify_element_value(locator, value)
+        self.page.keyboard.press("Enter", delay=1500)
+        return locator
+
+    def press_key_element(self, locator: Locator, key_press: str):
+        print(f"Press Key {key_press} in {locator} ")
+        self.focus_element(locator)
+        locator.press(key_press, delay=1500)
+        return locator
 
     # Assertions
 
-    def verify_text_visible(self, text):
+    def verify_text_visible(self, text, is_exact_text: bool = None):
         print(f"Verifying text visible: '{text}'")
-        locator = self.lbl_text(text)
+        locator = self.lbl_text(text, is_exact_text)
+        locator.scroll_into_view_if_needed()
         expect(locator).to_be_visible()
         assert locator.is_visible()
 
     def verify_element_visible(self, locator: Locator):
         print(f"Verifying element visible: '{locator}'")
+        locator.scroll_into_view_if_needed()
         expect(locator).to_be_visible()
         assert locator.is_visible()
 
@@ -111,5 +144,23 @@ class InteractionsPage:
     def verify_element_attribute(self, locator: Locator, attr_name: str, expected_attr_value: str):
         print(f"Verifying element attribute: '{attr_name}' ({expected_attr_value})")
         get_value = locator.get_attribute(attr_name)
-        print(f"Getting attribute: '{attr_name}' ({expected_attr_value})")
+        print(f"Getting attribute: Attribute Name :'{attr_name}' | Attribute Value :' {expected_attr_value}'")
         assert expected_attr_value in get_value
+
+    def verify_element_value(self, locator: Locator, expected_value: str):
+        ex_value = re.compile(rf".*{re.escape(expected_value)}.*", re.IGNORECASE)
+        el_value = locator.input_value()
+
+        print(f"Verifying element : Expected Value: '{ex_value}' | Actual Value : '{el_value}'")
+
+        expect(locator).to_have_value(ex_value)
+
+    def upload_file(self, locator: Locator, file_name: str, file_type: str):
+        print(f"Uploading file '{locator}' to file '{file_name}'")
+        current_dir = Path(__file__).parent
+
+        file_path = current_dir.parent.parent / "test_data" / f"{file_name}.{file_type}"
+
+        locator.set_input_files(file_path)
+        self.verify_element_value(locator, file_name)
+        sleep(1.5)
