@@ -57,8 +57,7 @@ jobs:
           fi
           
           # Run pytest with the filter and parallel args
-          # We add --tracing retain-on-failure for better debugging
-          pytest -v -s --disable-warnings $PARALLEL_ARGS --tracing retain-on-failure ${{ inputs.test_filter }} tests/
+          pytest -v -s --disable-warnings $PARALLEL_ARGS ${{ inputs.test_filter }} tests/
         
 
       - name: Upload Artifacts
