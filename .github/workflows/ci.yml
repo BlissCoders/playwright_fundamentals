@@ -7,6 +7,11 @@ on:
     branches: [ master, develop ]
   workflow_dispatch:
     inputs:
+      run_parallel:
+        description: 'Run tests in parallel?'
+        required: true
+        type: boolean
+        default: false
       test_filter:
         description: 'Run specific tests (e.g., -k "login" or -m "smoke")'
         required: false
@@ -42,7 +47,22 @@ jobs:
           RECORD_VIDEO: ${{github.event.inputs.record_video || 'false' }}
 
         # Use the input if provided, otherwise run all tests in the tests folder
-        run: pytest -v -s --disable-warnings ${{ github.event.inputs.test_filter }} tests
+        # run: pytest -v -s --disable-warnings ${{ github.event.inputs.test_filter }} tests
+        run: |
+        # Standard Bash 'if' for parallel logic
+          if [ "${{ inputs.run_parallel }}" = "true" ]; then
+            PARALLEL_ARGS="-n auto"
+            echo "Parallel mode enabled"
+          else
+            PARALLEL_ARGS=""
+            echo "Sequential mode enabled"
+          fi
+          
+        # Execute pytest with dynamic args
+        # --video handles the environment variable logic directly
+          pytest -v -s --disable-warnings $PARALLEL_ARGS \
+            --video $RECORD_VIDEO \
+            ${{ inputs.test_filter }} tests/
 
       - name: Upload Artifacts
         if: always() # Ensures artifacts upload even if tests fail
