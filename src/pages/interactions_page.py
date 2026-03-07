@@ -11,12 +11,6 @@ class InteractionsPage:
         self.page = page
 
     # Locators
-    def btn_drag_me(self) -> Locator:
-        return self.page.locator("#draggable")
-
-    def sec_drop_here(self) -> Locator:
-        return self.page.locator("#droppable")
-
     def nav_menu(self, text) -> Locator:
         return self.page.locator(f'//a[@href and text()="{text}"]')
 
@@ -70,6 +64,74 @@ class InteractionsPage:
 
         locator_func = locators.get(locator_type, scope.locator)
         return locator_func(locator_value)
+
+    def sortable_heading(self):
+        return self.page.get_by_role("heading", name="Sortable")
+
+    def sortable_items(self):
+        return self.page.locator("#sortable > li.ui-sortable-handle")
+
+    def drag_and_drop_sortable(self, source_index: int, target_index: int):
+        items = self.sortable_items()
+        source = items.nth(source_index)
+        target = items.nth(target_index)
+        source_box = source.bounding_box()
+        target_box = target.bounding_box()
+        self.page.mouse.move(source_box["x"] + source_box["width"] / 2,
+                             source_box["y"] + source_box["height"] / 2)
+        self.page.mouse.down()
+        self.page.mouse.move(target_box["x"] + target_box["width"] / 2,
+                             target_box["y"] + target_box["height"] / 2,
+                             steps=10)
+        self.page.mouse.up()
+
+    def resizable_box(self) -> Locator:
+        return self.page.locator("#resizable")
+
+    def resizable_handle_se(self) -> Locator:
+        return self.page.locator("#resizable .ui-resizable-se")
+
+    def resize_box(self, x_offset: int = 100, y_offset: int = 100):
+        handle = self.resizable_handle_se()
+        handle.scroll_into_view_if_needed()
+
+        box_before = self.resizable_box().bounding_box()
+
+        # drag diagonally
+        handle.hover()
+        self.page.mouse.down()
+        self.page.mouse.move(
+            box_before["x"] + box_before["width"] + x_offset,
+            box_before["y"] + box_before["height"] + y_offset,
+            steps=15
+        )
+        self.page.mouse.up()
+
+        box_after = self.resizable_box().bounding_box()
+        print(f"Resized box: before={box_before}, after={box_after}")
+        return box_after["width"], box_after["height"]
+
+    def selectable_items(self):
+        return self.page.locator("#selectable > li.ui-selectee")
+
+    def select_all_items(self):
+        items = self.selectable_items()
+        count = items.count()
+        for i in range(count):
+            item = items.nth(i)
+            item.scroll_into_view_if_needed()
+            item.click()
+            print(f"Selected item: {item.text_content()}")
+
+    def btn_drag_me(self) -> Locator:
+        return self.page.locator("#draggable")
+
+    def sec_drop_here(self) -> Locator:
+        return self.page.locator("#droppable")
+
+    def drag_and_drop(self):
+        print("Dragging 'Drag me' into 'Drop here'")
+        self.btn_drag_me().drag_to(self.sec_drop_here())
 
     # Commands
 

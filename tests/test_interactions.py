@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from time import sleep
 
@@ -25,18 +26,45 @@ class TestInteraction:
     @pytest.mark.interactions
     @pytest.mark.TC1
     def test_sortable_interactions(self):
-        self.inter_page.verify_text_visible("Sortable")
+        self.inter_page.navigate_to("Interactions")
+        self.inter_page.verify_element_visible(self.inter_page.sortable_heading())
+        before_items = self.inter_page.sortable_items().all_text_contents()
+        print("Before sorting:", before_items)
+        self.inter_page.drag_and_drop_sortable(0, 2)
+        after_items = self.inter_page.sortable_items().all_text_contents()
+        print("After sorting:", after_items)
+        assert before_items != after_items
 
     @pytest.mark.interactions
     @pytest.mark.TC2
-    def test_resizeable_interactions(self):
-        self.inter_page.verify_text_visible("Sortable")
+    def test_resizeable_interactions(self, playwright_page):
+        self.inter_page.navigate_to("Interactions")
+        before_size = self.inter_page.resizable_box().bounding_box()
+        print("Before resize:", before_size)
+        after_width, after_height = self.inter_page.resize_box(100, 100)
+        print("After resize:", after_width, after_height)
+        assert after_width > before_size["width"]
+        assert after_height > before_size["height"]
+        assert after_height > before_size["height"]
 
     @pytest.mark.interactions
     @pytest.mark.TC3
-    def test_droppable_interactions(self):
-        self.inter_page.verify_text_visible("Sortable")
+    def test_selectable_interactions(self, playwright_page: Page):
+        self.inter_page.navigate_to("Interactions")
+        self.inter_page.verify_text_visible("Selectable", is_exact_text=True)
+        self.inter_page.select_all_items()
+        last_item = self.inter_page.selectable_items().nth(3)
+        expect(last_item).to_have_class(re.compile("ui-selected"))
+
+
+    @pytest.mark.interactions
+    @pytest.mark.TC4
+    def test_droppable_interactions(self, playwright_page: Page):
+        self.inter_page.navigate_to("Interactions")
+        self.inter_page.verify_text_visible("Droppable", is_exact_text=True)
         self.inter_page.drag_and_drop()
+        drop_area = self.inter_page.sec_drop_here()
+        expect(drop_area).to_have_text(re.compile("Dropped!"))
 
     @pytest.mark.interactions
     @pytest.mark.TC8
