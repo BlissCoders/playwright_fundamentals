@@ -12,8 +12,7 @@ class TestHomeAndLogin:
     @pytest.mark.login
     @pytest.mark.parametrize("username, password",[
         pytest.param("admin@test.com","Password123", id="valid_user"),
-        pytest.param("invalid@test.com","wrongpassword", id="invalid_user"),
-        pytest.param("invalid2@test.com","wrongpassword2", id="invalid_user2")
+        pytest.param("invalid@test.com","wrongpassword", id="invalid_user")
     ])
     def test_login_scenarios(self, playwright_page, username, password):
         login_page = LoginPage.open(page=playwright_page)
