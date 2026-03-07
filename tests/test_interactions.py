@@ -26,7 +26,6 @@ class TestInteraction:
     @pytest.mark.interactions
     @pytest.mark.TC1
     def test_sortable_interactions(self):
-        self.inter_page.navigate_to("Interactions")
         self.inter_page.verify_element_visible(self.inter_page.sortable_heading())
         before_items = self.inter_page.sortable_items().all_text_contents()
         print("Before sorting:", before_items)
@@ -38,7 +37,6 @@ class TestInteraction:
     @pytest.mark.interactions
     @pytest.mark.TC2
     def test_resizeable_interactions(self, playwright_page):
-        self.inter_page.navigate_to("Interactions")
         before_size = self.inter_page.resizable_box().bounding_box()
         print("Before resize:", before_size)
         after_width, after_height = self.inter_page.resize_box(100, 100)
@@ -50,7 +48,6 @@ class TestInteraction:
     @pytest.mark.interactions
     @pytest.mark.TC3
     def test_selectable_interactions(self, playwright_page: Page):
-        self.inter_page.navigate_to("Interactions")
         self.inter_page.verify_text_visible("Selectable", is_exact_text=True)
         self.inter_page.select_all_items()
         last_item = self.inter_page.selectable_items().nth(3)
@@ -60,14 +57,13 @@ class TestInteraction:
     @pytest.mark.interactions
     @pytest.mark.TC4
     def test_droppable_interactions(self, playwright_page: Page):
-        self.inter_page.navigate_to("Interactions")
         self.inter_page.verify_text_visible("Droppable", is_exact_text=True)
         self.inter_page.drag_and_drop()
         drop_area = self.inter_page.sec_drop_here()
         expect(drop_area).to_have_text(re.compile("Dropped!"))
 
     @pytest.mark.interactions
-    @pytest.mark.TC8
+    @pytest.mark.TC5
     def test_accordion_elements_interactions(self):
         print("Testing Accordion elements interactions...")
 
@@ -92,7 +88,7 @@ class TestInteraction:
         self.inter_page.verify_element_not_visible(self.inter_page.lbl_text("Content 1"))
 
     @pytest.mark.interactions
-    @pytest.mark.TC9
+    @pytest.mark.TC6
     @pytest.mark.parametrize("element_test, autocomplete_value", [
         pytest.param("Autocomplete", "Playwright", id="1"),
         pytest.param("Autocomplete", "Cypress", id="2"),
@@ -119,7 +115,7 @@ class TestInteraction:
         )
 
     @pytest.mark.interactions
-    @pytest.mark.TC10
+    @pytest.mark.TC7
     def test_date_picker_elements_interactions(self):
         print("Testing Date picker elements interactions...")
 
@@ -132,7 +128,7 @@ class TestInteraction:
         sleep(3)
 
     @pytest.mark.interactions
-    @pytest.mark.TC11
+    @pytest.mark.TC8
     @pytest.mark.parametrize("element_test, progress_bar_value", [
         pytest.param("Progressbar", "60", id="1")])
     def test_progress_bar_elements_interactions(self, element_test, progress_bar_value):
@@ -148,7 +144,7 @@ class TestInteraction:
             expected_attr_value=progress_bar_value)
 
     @pytest.mark.interactions
-    @pytest.mark.TC12
+    @pytest.mark.TC9
     def test_tabs_elements_interactions(self):
         print("Testing Tabs elements interactions...")
 
@@ -171,7 +167,7 @@ class TestInteraction:
         self.inter_page.verify_element_visible(self.inter_page.tab_selected("1"))
 
     @pytest.mark.interactions
-    @pytest.mark.TC13
+    @pytest.mark.TC10
     def test_tooltips_elements_interactions(self):
         print("Testing Tooltips elements interactions...")
 
@@ -186,7 +182,7 @@ class TestInteraction:
         self.inter_page.verify_element_visible(tooltip)
 
     @pytest.mark.interactions
-    @pytest.mark.TC14
+    @pytest.mark.TC11
     def test_menu_elements_interactions(self):
         print("Testing Menu elements interactions...")
 
@@ -204,7 +200,7 @@ class TestInteraction:
             )
 
     @pytest.mark.interactions
-    @pytest.mark.TC15
+    @pytest.mark.TC12
     def test_select_menu_elements_interactions(self):
         print("Testing Select Menu elements interactions...")
 
@@ -219,7 +215,7 @@ class TestInteraction:
             sleep(1.2)
 
     @pytest.mark.interactions
-    @pytest.mark.TC16
+    @pytest.mark.TC13
     def test_shadow_dom_demo_elements_interactions(self):
         print("Testing Shadow DOM Demo elements interactions...")
         self.inter_page.verify_text_visible("Shadow DOM Demo")
@@ -234,7 +230,7 @@ class TestInteraction:
         self.inter_page.verify_element_visible(result_text)
 
     @pytest.mark.interactions
-    @pytest.mark.TC17
+    @pytest.mark.TC14
     def test_upload_file_elements_interactions(self):
         print("Testing Upload File elements interactions...")
 

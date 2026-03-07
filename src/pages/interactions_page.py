@@ -71,6 +71,32 @@ class InteractionsPage:
     def sortable_items(self):
         return self.page.locator("#sortable > li.ui-sortable-handle")
 
+    def resizable_box(self) -> Locator:
+        return self.page.locator("#resizable")
+
+    def resizable_handle_se(self) -> Locator:
+        return self.page.locator("#resizable .ui-resizable-se")
+
+    def selectable_items(self):
+        return self.page.locator("#selectable > li.ui-selectee")
+
+    def btn_drag_me(self) -> Locator:
+        return self.page.locator("#draggable")
+
+    def sec_drop_here(self) -> Locator:
+        return self.page.locator("#droppable")
+
+    # Commands
+
+    @classmethod
+    def open(cls, page, url: str = "https://blisscoders.pythonanywhere.com/") -> 'InteractionsPage':
+        page.goto(url)
+        return cls(page)
+
+    def navigate_to(self, nav_text):
+        print(f"Navigating to {nav_text} ")
+        self.nav_menu_items().filter(has_text=nav_text).click()
+
     def drag_and_drop_sortable(self, source_index: int, target_index: int):
         items = self.sortable_items()
         source = items.nth(source_index)
@@ -85,11 +111,18 @@ class InteractionsPage:
                              steps=10)
         self.page.mouse.up()
 
-    def resizable_box(self) -> Locator:
-        return self.page.locator("#resizable")
+    def drag_and_drop(self):
+        print("Dragging 'Drag me' into 'Drop here'")
+        self.btn_drag_me().drag_to(self.sec_drop_here())
 
-    def resizable_handle_se(self) -> Locator:
-        return self.page.locator("#resizable .ui-resizable-se")
+    def select_all_items(self):
+        items = self.selectable_items()
+        count = items.count()
+        for i in range(count):
+            item = items.nth(i)
+            item.scroll_into_view_if_needed()
+            item.click()
+            print(f"Selected item: {item.text_content()}")
 
     def resize_box(self, x_offset: int = 100, y_offset: int = 100):
         handle = self.resizable_handle_se()
@@ -110,43 +143,6 @@ class InteractionsPage:
         box_after = self.resizable_box().bounding_box()
         print(f"Resized box: before={box_before}, after={box_after}")
         return box_after["width"], box_after["height"]
-
-    def selectable_items(self):
-        return self.page.locator("#selectable > li.ui-selectee")
-
-    def select_all_items(self):
-        items = self.selectable_items()
-        count = items.count()
-        for i in range(count):
-            item = items.nth(i)
-            item.scroll_into_view_if_needed()
-            item.click()
-            print(f"Selected item: {item.text_content()}")
-
-    def btn_drag_me(self) -> Locator:
-        return self.page.locator("#draggable")
-
-    def sec_drop_here(self) -> Locator:
-        return self.page.locator("#droppable")
-
-    def drag_and_drop(self):
-        print("Dragging 'Drag me' into 'Drop here'")
-        self.btn_drag_me().drag_to(self.sec_drop_here())
-
-    # Commands
-
-    @classmethod
-    def open(cls, page, url: str = "https://blisscoders.pythonanywhere.com/") -> 'InteractionsPage':
-        page.goto(url)
-        return cls(page)
-
-    def navigate_to(self, nav_text):
-        print(f"Navigating to {nav_text} ")
-        self.nav_menu_items().filter(has_text=nav_text).click()
-
-    def drag_and_drop(self):
-        print(f"Dragging element with selector 'btn_drag_me' to element with selector 'sec_drop_here'")
-        self.btn_drag_me().drag_to(self.sec_drop_here())
 
     def focus_element(self, locator: Locator):
         print(f"Focus Element {locator}")
