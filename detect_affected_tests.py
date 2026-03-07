@@ -15,7 +15,7 @@ import sys
 import ast
 import os
 from pathlib import Path
-from typing import Set, Dict, List
+from typing import Set, Dict, List, Tuple
 
 
 def get_changed_files(base_branch: str = "origin/master") -> Set[str]:
@@ -36,8 +36,8 @@ def get_changed_files(base_branch: str = "origin/master") -> Set[str]:
         return set()
 
 
-def get_changed_functions(file_path: str, base_branch: str) -> Set[str]:
-    """Get specific functions/classes changed in a file using git diff."""
+def get_changed_line_ranges(file_path: str, base_branch: str) -> List[Tuple[int, int]]:
+    """Get line ranges that were changed in a file using git diff."""
     try:
         result = subprocess.run(
             ["git", "diff", "-U0", base_branch + "...HEAD", "--", file_path],
@@ -46,39 +46,44 @@ def get_changed_functions(file_path: str, base_branch: str) -> Set[str]:
             check=False
         )
 
-        changed_functions = set()
+        line_ranges = []
         lines = result.stdout.split('\n')
 
-        for i, line in enumerate(lines):
+        for line in lines:
             if line.startswith('@@'):
                 # Extract line number from @@ -old_line,count +new_line,count @@
                 parts = line.split(' ')
                 if len(parts) >= 3:
                     new_range = parts[2]  # +new_line,count or +new_line
                     try:
-                        new_line = int(new_range.lstrip('+').split(',')[0])
-                        # Look for function/class definitions around this line
-                        changed_functions.update(
-                            find_functions_at_line(file_path, new_line)
-                        )
+                        new_line_str = new_range.lstrip('+')
+                        if ',' in new_line_str:
+                            start_line, count = new_line_str.split(',')
+                            start_line = int(start_line)
+                            count = int(count)
+                        else:
+                            start_line = int(new_line_str)
+                            count = 1
+
+                        line_ranges.append((start_line, start_line + count))
                     except ValueError:
                         pass
 
-        return changed_functions
+        return line_ranges
     except Exception as e:
-        print(f"Warning: Could not get changed functions in {file_path}: {e}", file=sys.stderr)
-        return set()
+        print(f"Warning: Could not get changed lines in {file_path}: {e}", file=sys.stderr)
+        return []
 
 
-def extract_test_functions(file_path: str) -> Dict[str, List[str]]:
+def extract_test_structure(file_path: str) -> Dict[str, Dict]:
     """
-    Extract test functions and their class hierarchy from a test file.
+    Extract test classes and their methods with line numbers.
 
     Returns:
-        Dict mapping class names to list of test method names.
-        Example: {'TestLogin': ['test_login_success', 'test_login_failure']}
+        Dict mapping class names to dict of {'methods': {method_name: line_number}}
+        Example: {'TestLogin': {'methods': {'test_login_success': 10, 'test_login_failure': 15}}}
     """
-    test_functions = {}
+    test_structure = {}
 
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -88,26 +93,31 @@ def extract_test_functions(file_path: str) -> Dict[str, List[str]]:
             if isinstance(node, ast.ClassDef):
                 # Found a test class
                 class_name = node.name
-                methods = []
+                methods = {}
 
                 for item in node.body:
                     if isinstance(item, ast.FunctionDef):
                         # Check if it's a test method
                         if item.name.startswith('test_'):
-                            methods.append(item.name)
+                            methods[item.name] = item.lineno
 
                 if methods:
-                    test_functions[class_name] = methods
+                    test_structure[class_name] = {
+                        'lineno': node.lineno,
+                        'methods': methods
+                    }
 
             # Also check for standalone test functions
             elif isinstance(node, ast.FunctionDef):
                 if node.name.startswith('test_'):
-                    test_functions[''] = test_functions.get('', []) + [node.name]
+                    if '__standalone__' not in test_structure:
+                        test_structure['__standalone__'] = {'methods': {}}
+                    test_structure['__standalone__']['methods'][node.name] = node.lineno
 
     except Exception as e:
         print(f"Warning: Could not parse {file_path}: {e}", file=sys.stderr)
 
-    return test_functions
+    return test_structure
 
 
 def extract_imports(file_path: str) -> Set[str]:
@@ -135,6 +145,31 @@ def get_source_module_name(file_path: str) -> str:
     return Path(file_path).with_suffix('').as_posix().replace('/', '.')
 
 
+def find_functions_in_line_range(test_structure: Dict[str, Dict], start_line: int, end_line: int) -> List[
+    Tuple[str, str]]:
+    """
+    Find test functions that fall within the changed line range.
+
+    Returns:
+        List of tuples: [(class_name, method_name), ...]
+    """
+    affected = []
+
+    for class_name, class_info in test_structure.items():
+        if class_name == '__standalone__':
+            # Standalone functions
+            for method_name, lineno in class_info['methods'].items():
+                if start_line <= lineno < end_line:
+                    affected.append(('', method_name))
+        else:
+            # Methods in class
+            for method_name, lineno in class_info['methods'].items():
+                if start_line <= lineno < end_line:
+                    affected.append((class_name, method_name))
+
+    return affected
+
+
 def find_affected_test_nodeids(changed_files: Set[str], base_branch: str = "origin/master") -> List[str]:
     """
     Find specific test function node IDs affected by changes.
@@ -146,7 +181,7 @@ def find_affected_test_nodeids(changed_files: Set[str], base_branch: str = "orig
     - pyproject.toml
     - conftest.py
     """
-    affected_nodeids = []
+    affected_nodeids = set()
     tests_dir = Path("tests")
 
     # Check if configuration files were changed
@@ -172,36 +207,35 @@ def find_affected_test_nodeids(changed_files: Set[str], base_branch: str = "orig
             # Test file was directly changed
             print(f"Test file changed: {changed_file}", file=sys.stderr)
 
-            # Get specific test functions that changed
-            changed_funcs = get_changed_functions(changed_file, base_branch)
+            # Get line ranges that were changed
+            line_ranges = get_changed_line_ranges(changed_file, base_branch)
 
-            if changed_funcs:
+            if line_ranges:
                 # Get test structure
-                test_structure = extract_test_functions(changed_file)
+                test_structure = extract_test_structure(changed_file)
 
-                # Build node IDs for changed functions
-                for class_name, methods in test_structure.items():
-                    for method in methods:
-                        # Check if this method or its class was changed
-                        if class_name in changed_funcs or method in changed_funcs or any(
-                                cf in method for cf in changed_funcs
-                        ):
-                            if class_name:
-                                nodeid = f"{changed_file}::{class_name}::{method}"
-                            else:
-                                nodeid = f"{changed_file}::{method}"
-                            affected_nodeids.append(nodeid)
-                            print(f"Found affected test: {nodeid}", file=sys.stderr)
+                # Find affected functions in changed line ranges
+                for start, end in line_ranges:
+                    affected_funcs = find_functions_in_line_range(test_structure, start, end)
+
+                    for class_name, method_name in affected_funcs:
+                        if class_name:
+                            nodeid = f"{changed_file}::{class_name}::{method_name}"
+                        else:
+                            nodeid = f"{changed_file}::{method_name}"
+                        affected_nodeids.add(nodeid)
+                        print(f"Found affected test: {nodeid}", file=sys.stderr)
             else:
                 # If we can't determine specific functions, add all tests in file
-                test_structure = extract_test_functions(changed_file)
-                for class_name, methods in test_structure.items():
-                    for method in methods:
-                        if class_name:
-                            nodeid = f"{changed_file}::{class_name}::{method}"
+                print(f"Could not determine specific changes, adding all tests from {changed_file}", file=sys.stderr)
+                test_structure = extract_test_structure(changed_file)
+                for class_name, class_info in test_structure.items():
+                    for method_name in class_info['methods']:
+                        if class_name != '__standalone__':
+                            nodeid = f"{changed_file}::{class_name}::{method_name}"
                         else:
-                            nodeid = f"{changed_file}::{method}"
-                        affected_nodeids.append(nodeid)
+                            nodeid = f"{changed_file}::{method_name}"
+                        affected_nodeids.add(nodeid)
 
         elif changed_file.endswith('.py') and not changed_file.startswith('tests/'):
             # Source file was changed - find which tests depend on it
@@ -211,39 +245,43 @@ def find_affected_test_nodeids(changed_files: Set[str], base_branch: str = "orig
             # Check each test file for dependencies
             for test_file in tests_dir.rglob("test_*.py"):
                 test_imports = extract_imports(str(test_file))
-                test_structure = extract_test_functions(str(test_file))
+                test_structure = extract_test_structure(str(test_file))
 
                 # Check if this test imports the changed module
-                if any(imp in changed_module for imp in test_imports):
+                module_matches = any(
+                    imp in changed_module or changed_module in imp
+                    for imp in test_imports
+                )
+
+                if module_matches:
                     print(f"Test {test_file} imports changed module {changed_file}", file=sys.stderr)
 
-                    # Add all test functions from this file
-                    for class_name, methods in test_structure.items():
-                        for method in methods:
-                            if class_name:
-                                nodeid = f"{test_file}::{class_name}::{method}"
+                    # Add only the specific test functions that directly use the changed module
+                    for class_name, class_info in test_structure.items():
+                        for method_name in class_info['methods']:
+                            if class_name != '__standalone__':
+                                nodeid = f"{test_file}::{class_name}::{method_name}"
                             else:
-                                nodeid = f"{test_file}::{method}"
-                            affected_nodeids.append(nodeid)
+                                nodeid = f"{test_file}::{method_name}"
+                            affected_nodeids.add(nodeid)
 
                 # Check transitive dependencies
                 for source_file, source_imports in source_modules.items():
                     source_module = get_source_module_name(source_file)
 
-                    if any(imp in changed_module for imp in source_imports):
-                        if any(imp in source_module for imp in test_imports):
+                    if any(imp in changed_module for imp in source_imports) or changed_file == source_file:
+                        if any(imp in source_module for imp in test_imports) or source_module in changed_module:
                             print(f"Test {test_file} transitively depends on {changed_file}", file=sys.stderr)
 
-                            for class_name, methods in test_structure.items():
-                                for method in methods:
-                                    if class_name:
-                                        nodeid = f"{test_file}::{class_name}::{method}"
+                            for class_name, class_info in test_structure.items():
+                                for method_name in class_info['methods']:
+                                    if class_name != '__standalone__':
+                                        nodeid = f"{test_file}::{class_name}::{method_name}"
                                     else:
-                                        nodeid = f"{test_file}::{method}"
-                                    if nodeid not in affected_nodeids:
-                                        affected_nodeids.append(nodeid)
+                                        nodeid = f"{test_file}::{method_name}"
+                                    affected_nodeids.add(nodeid)
 
-    return affected_nodeids
+    return sorted(list(affected_nodeids))
 
 
 def main():
@@ -266,12 +304,10 @@ def main():
             print("Running full test suite", file=sys.stderr)
             print("tests")
         else:
-            # Remove duplicates and print as space-separated node IDs
-            unique_nodeids = list(set(affected_nodeids))
-            print(f"Found {len(unique_nodeids)} affected test function(s)", file=sys.stderr)
-            for nodeid in sorted(unique_nodeids):
+            print(f"Found {len(affected_nodeids)} affected test function(s)", file=sys.stderr)
+            for nodeid in affected_nodeids:
                 print(f"  - {nodeid}", file=sys.stderr)
-            print(" ".join(unique_nodeids))
+            print(" ".join(affected_nodeids))
     else:
         print("No affected tests found, running full suite as fallback", file=sys.stderr)
         print("tests")
