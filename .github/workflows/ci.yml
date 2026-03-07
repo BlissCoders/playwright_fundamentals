@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # Fetch full history to detect changes
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -46,23 +46,30 @@ jobs:
           # Make script executable
           chmod +x ./detect_affected_tests.py
           
-          # Get affected test files
+          # Get affected test node IDs (specific test functions, not entire files)
           AFFECTED=$(python ./detect_affected_tests.py origin/${{ github.base_ref }})
-          echo "test_paths=$AFFECTED" >> $GITHUB_OUTPUT
-          echo "Affected tests: $AFFECTED"
+          echo "test_nodeids=$AFFECTED" >> $GITHUB_OUTPUT
+          echo "Affected test node IDs:"
+          echo "$AFFECTED" | tr ',' '\n'
 
       - name: Run pytest
         env:
           RECORD_VIDEO: ${{ github.event.inputs.record_video || 'false' }}
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ] && [ -z "${{ github.event.inputs.test_filter }}" ]; then
-            # Run only affected tests
-            TEST_PATHS="${{ steps.affected.outputs.test_paths }}"
-            echo "Running affected tests: $TEST_PATHS"
-            pytest -v -s --disable-warnings ${{ github.event.inputs.test_filter }} $TEST_PATHS
+            # Run only affected test functions (not entire files/classes)
+            TEST_NODEIDS="${{ steps.affected.outputs.test_nodeids }}"
+            if [ -n "$TEST_NODEIDS" ] && [ "$TEST_NODEIDS" != "tests" ]; then
+              echo "Running affected tests only..."
+              # Convert comma-separated node IDs to pytest format
+              pytest -v -s --disable-warnings $TEST_NODEIDS
+            else
+              echo "Running full test suite (no specific tests found)..."
+              pytest -v -s --disable-warnings tests
+            fi
           else
-            # Run all tests
-            echo "Running all tests"
+            # Run all tests for push events and manual triggers
+            echo "Running all tests (push/manual mode)..."
             pytest -v -s --disable-warnings ${{ github.event.inputs.test_filter }} tests
           fi
 
