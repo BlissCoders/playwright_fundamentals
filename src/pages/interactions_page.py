@@ -32,6 +32,9 @@ class InteractionsPage:
     def menu_menu(self) -> Locator:
         return self.page.locator("ul#menu")
 
+    def menu_list(self, menu_text: str) -> Locator:
+        return self.page.locator(".ui-menu-item-wrapper").get_by_text(menu_text)
+
     def cmb_select_menu(self, ) -> Locator:
         return self.page.locator("#selectmenu-button")
 
@@ -46,24 +49,6 @@ class InteractionsPage:
 
     def btn_upload(self) -> Locator:
         return self.page.locator("//button[@data-testid='btn-upload']")
-
-    def get_locator_by(self, locator_type: str, locator_value: str, parent_selector: str = None) -> Locator:
-        scope = self.page.locator(parent_selector) if parent_selector else self.page
-
-        locators = {
-            "alt_text": scope.get_by_alt_text,
-            "label": scope.get_by_label,
-            "placeholder": scope.get_by_placeholder,
-            "role": scope.get_by_role,
-            "test_id": scope.get_by_test_id,
-            "text": scope.get_by_text,
-            "title": scope.get_by_title,
-            "xpath": scope.locator,
-            "css": scope.locator,
-        }
-
-        locator_func = locators.get(locator_type, scope.locator)
-        return locator_func(locator_value)
 
     def sortable_heading(self):
         return self.page.get_by_role("heading", name="Sortable")
@@ -85,6 +70,24 @@ class InteractionsPage:
 
     def sec_drop_here(self) -> Locator:
         return self.page.locator("#droppable")
+
+    def lbl_tooltip(self) -> Locator:
+        return self.page.locator(".ui-tooltip-content").get_by_text("Tooltip text here")
+
+    def btn_click_me(self) -> Locator:
+        return self.page.locator("#shadow-host").get_by_text("Click Me")
+
+    def lbl_shadow_dom_demo(self) -> Locator:
+        return self.page.locator("#shadow-host").get_by_text("Button clicked inside Shadow DOM!")
+
+    def lbl_auto_complete_list(self, text: str) -> Locator:
+        return self.page.locator(".ui-autocomplete li").get_by_text(text)
+
+    def lbl_hover_me(self) -> Locator:
+        return self.page.get_by_text("Hover over me")
+
+    def div_progress_bar(self) -> Locator:
+        return self.page.get_by_role(role="progressbar")
 
     # Commands
 
@@ -144,74 +147,22 @@ class InteractionsPage:
         print(f"Resized box: before={box_before}, after={box_after}")
         return box_after["width"], box_after["height"]
 
-    def focus_element(self, locator: Locator):
-        print(f"Focus Element {locator}")
-        self.verify_element_visible(locator)
-        locator.focus()
-        expect(locator).to_be_focused()
-        return locator
+    def validate_menu_option(self, list_text):
+        for index, menu_item in enumerate(list_text, start=1):
+            attr_value = f"ui-id-{index}"
+            self.menu_list(menu_item).click()
+            get_attr = self.menu_menu().get_attribute("aria-activedescendant")
+            print(f"Actual Attribute Value for {menu_item} is {get_attr}")
+            assert get_attr == attr_value
 
-    def click_element(self, locator: Locator):
-        print(f"Click Element {locator}")
-        self.verify_element_visible(locator)
-        locator.scroll_into_view_if_needed()
-        locator.click()
-        return locator
-
-    def click_element_by_text(self, text_to_click: str, parent_selector: str = None):
-        print(f"Click Element {text_to_click} with selector '{parent_selector}'")
-        locator = self.get_locator_by("text", text_to_click, parent_selector)
-        self.verify_element_visible(locator)
-        locator.click()
-
-    def enter_text(self, locator: Locator, value: str):
-        print(f"Enter Text {locator}")
-        self.focus_element(locator)
-        locator.fill("")
-        locator.fill(value)
-        self.verify_element_value(locator, value)
-        self.page.keyboard.press("Enter", delay=1500)
-        return locator
-
-    def press_key_element(self, locator: Locator, key_press: str):
-        print(f"Press Key {key_press} in {locator} ")
-        self.focus_element(locator)
-        locator.press(key_press, delay=1500)
-        return locator
-
-    # Assertions
-
-    def verify_text_visible(self, text, is_exact_text: bool = None):
-        print(f"Verifying text visible: '{text}'")
-        locator = self.lbl_text(text, is_exact_text)
-        locator.scroll_into_view_if_needed()
-        expect(locator).to_be_visible()
-        assert locator.is_visible()
-
-    def verify_element_visible(self, locator: Locator):
-        print(f"Verifying element visible: '{locator}'")
-        locator.scroll_into_view_if_needed()
-        expect(locator).to_be_visible()
-        assert locator.is_visible()
-
-    def verify_element_not_visible(self, locator: Locator):
-        print(f"Verifying element not visible: '{locator}'")
-        expect(locator).not_to_be_visible()
-        assert locator.is_hidden()
-
-    def verify_element_attribute(self, locator: Locator, attr_name: str, expected_attr_value: str):
-        print(f"Verifying element attribute: '{attr_name}' ({expected_attr_value})")
-        get_value = locator.get_attribute(attr_name)
-        print(f"Getting attribute: Attribute Name :'{attr_name}' | Attribute Value :' {expected_attr_value}'")
-        assert expected_attr_value in get_value
-
-    def verify_element_value(self, locator: Locator, expected_value: str):
-        ex_value = re.compile(rf".*{re.escape(expected_value)}.*", re.IGNORECASE)
-        el_value = locator.input_value()
-
-        print(f"Verifying element : Expected Value: '{ex_value}' | Actual Value : '{el_value}'")
-
-        expect(locator).to_have_value(ex_value)
+    def validate_select_menu(self, list_text):
+        for select_menu_item in list_text:
+            print(f" Select Menu Item to be selected : {select_menu_item}")
+            # since the element is not "select" we cannot use the selection_option, so simuilate ko nalang
+            self.cmb_select_menu().click()
+            self.cmb_item_select_menu().filter(has_text=select_menu_item).click()
+            expect(self.cmb_item_select_menu_value()).to_have_text(select_menu_item)
+            sleep(1.2)
 
     def upload_file(self, locator: Locator, file_name: str, file_type: str):
         print(f"Uploading file '{locator}' to file '{file_name}'")
@@ -220,5 +171,5 @@ class InteractionsPage:
         file_path = current_dir.parent.parent / "test_data" / f"{file_name}.{file_type}"
 
         locator.set_input_files(file_path)
-        self.verify_element_value(locator, file_name)
+        expect(locator).to_have_value(re.compile(rf"{file_name}(\.[^.]+)?$"))
         sleep(1.5)

@@ -3,15 +3,12 @@ from datetime import datetime
 from time import sleep
 
 import pytest
-from dotenv import load_dotenv
 from playwright.sync_api import Page, expect
 
 from src.pages.interactions_page import InteractionsPage
 
 
 class TestInteraction:
-    load_dotenv()
-
     inter_page = None
 
     @pytest.fixture(autouse=True)
@@ -26,7 +23,7 @@ class TestInteraction:
     @pytest.mark.interactions
     @pytest.mark.TC1
     def test_sortable_interactions(self):
-        self.inter_page.verify_element_visible(self.inter_page.sortable_heading())
+        self.inter_page.sortable_heading().is_visible()
         before_items = self.inter_page.sortable_items().all_text_contents()
         print("Before sorting:", before_items)
         self.inter_page.drag_and_drop_sortable(0, 2)
@@ -48,16 +45,15 @@ class TestInteraction:
     @pytest.mark.interactions
     @pytest.mark.TC3
     def test_selectable_interactions(self, playwright_page: Page):
-        self.inter_page.verify_text_visible("Selectable", is_exact_text=True)
+        expect(self.page.get_by_text("Selectable", exact=True)).to_be_visible()
         self.inter_page.select_all_items()
         last_item = self.inter_page.selectable_items().nth(3)
         expect(last_item).to_have_class(re.compile("ui-selected"))
 
-
     @pytest.mark.interactions
     @pytest.mark.TC4
     def test_droppable_interactions(self, playwright_page: Page):
-        self.inter_page.verify_text_visible("Droppable", is_exact_text=True)
+        expect(self.page.get_by_text("Droppable")).to_be_visible()
         self.inter_page.drag_and_drop()
         drop_area = self.inter_page.sec_drop_here()
         expect(drop_area).to_have_text(re.compile("Dropped!"))
@@ -67,25 +63,17 @@ class TestInteraction:
     def test_accordion_elements_interactions(self):
         print("Testing Accordion elements interactions...")
 
-        self.inter_page.verify_text_visible("Accordion")
-
-        self.inter_page.verify_element_visible(self.inter_page.lbl_text("Accordion"))
+        expect(self.page.get_by_text("Accordion")).to_be_visible()
 
         print(f"Verify Default Element visible for Accordion")
 
-        for txt in ["Section 1", "Section 2", "Content 1"]:
-            self.inter_page.verify_element_visible(self.inter_page.lbl_text(txt))
+        self.inter_page.lbl_text("Content 1").is_visible()
+        self.inter_page.lbl_text("Content 2").is_hidden()
+        self.inter_page.lbl_text("Section 2").click()
 
-        self.inter_page.verify_element_not_visible(self.inter_page.lbl_text("Content 2"))
-
-        self.inter_page.click_element(self.inter_page.lbl_text("Section 2"))
-
-        self.inter_page.verify_element_attribute(
-            self.inter_page.lbl_text("Section 1"),
-            attr_name="aria-expanded",
-            expected_attr_value="false"
-        )
-        self.inter_page.verify_element_not_visible(self.inter_page.lbl_text("Content 1"))
+        get_attr = self.inter_page.lbl_text("Section 1").get_attribute("aria-expanded")
+        assert get_attr == "false"
+        self.inter_page.lbl_text("Content 2").is_hidden()
 
     @pytest.mark.interactions
     @pytest.mark.TC6
@@ -97,34 +85,29 @@ class TestInteraction:
     def test_auto_complete_elements_interactions(self, element_test, autocomplete_value):
         print("Testing Autocomplete elements interactions...")
 
-        self.inter_page.verify_text_visible(element_test)
-
-        self.inter_page.verify_element_visible(self.inter_page.lbl_text(element_test))
+        expect(self.page.get_by_text(element_test)).to_be_visible()
 
         # since the element is not "select" we cannot use the selection_option, so simuilate ko nalang
-        self.inter_page.enter_text(self.inter_page.txt_autocomplete(), "P")
-        self.inter_page.click_element_by_text(autocomplete_value, ".ui-autocomplete li")
-        self.inter_page.verify_element_value(self.inter_page.txt_autocomplete(), autocomplete_value)
+        self.inter_page.txt_autocomplete().fill("P")
+
+        self.inter_page.lbl_auto_complete_list(autocomplete_value).click()
+
+        expect(self.inter_page.txt_autocomplete()).to_have_value(autocomplete_value)
 
         sleep(3)
-
-        self.inter_page.verify_element_attribute(
-            self.inter_page.txt_autocomplete(),
-            attr_name="autocomplete",
-            expected_attr_value="off"
-        )
+        get_attr = self.inter_page.txt_autocomplete().get_attribute("autocomplete")
+        assert get_attr == "off"
 
     @pytest.mark.interactions
     @pytest.mark.TC7
     def test_date_picker_elements_interactions(self):
         print("Testing Date picker elements interactions...")
 
-        self.inter_page.verify_text_visible("Datepicker")
-
-        self.inter_page.verify_element_visible(self.inter_page.lbl_text("Datepicker"))
+        expect(self.page.get_by_text("Datepicker")).to_be_visible()
 
         date_today = datetime.now().strftime("%m/%d/%Y")
-        self.inter_page.enter_text(self.inter_page.txt_date_picker(), date_today)
+        self.inter_page.txt_date_picker().fill(date_today)
+        self.page.keyboard.press("Enter", delay=1500)
         sleep(3)
 
     @pytest.mark.interactions
@@ -134,109 +117,70 @@ class TestInteraction:
     def test_progress_bar_elements_interactions(self, element_test, progress_bar_value):
         print("Testing Progress bar elements interactions...")
 
-        self.inter_page.verify_text_visible(element_test)
+        expect(self.page.get_by_text(element_test)).to_be_visible()
 
-        self.inter_page.verify_element_visible(self.inter_page.lbl_text(element_test))
+        get_attr = self.inter_page.div_progress_bar().get_attribute("aria-valuenow")
 
-        self.inter_page.verify_element_attribute(
-            self.inter_page.get_locator_by(locator_type="role", locator_value="progressbar"),
-            attr_name="aria-valuenow",
-            expected_attr_value=progress_bar_value)
+        assert get_attr == progress_bar_value, f"Failed  Actual Value{get_attr} | Expected Value : {progress_bar_value}"
 
     @pytest.mark.interactions
     @pytest.mark.TC9
     def test_tabs_elements_interactions(self):
         print("Testing Tabs elements interactions...")
 
-        self.inter_page.verify_text_visible("Tabs")
+        expect(self.page.get_by_text("Tabs")).to_be_visible()
 
-        self.inter_page.verify_element_visible(self.inter_page.lbl_text("Tabs"))
-        self.inter_page.verify_element_visible(self.inter_page.tab_selected("1"))
-        self.inter_page.verify_element_visible(self.inter_page.lbl_text("Tab 1 content"))
-        self.inter_page.verify_element_not_visible(self.inter_page.lbl_text("Tab 2 content"))
+        self.inter_page.tab_selected("1").is_visible()
+        self.inter_page.lbl_text("Tab 1 content").is_visible()
+        self.inter_page.lbl_text("Tab 2 content").is_hidden()
+        self.inter_page.tab_selected("2").click()
 
-        self.inter_page.click_element(self.inter_page.tab_selected("2"))
-
-        self.inter_page.verify_element_attribute(
-            self.inter_page.tab_selected("1"),
-            attr_name="aria-expanded",
-            expected_attr_value="false"
-        )
-        self.inter_page.verify_element_not_visible(self.inter_page.lbl_text("Tab 1 content"))
+        get_attr = self.inter_page.tab_selected("1").get_attribute("aria-expanded")
+        assert get_attr == "false"
+        self.inter_page.lbl_text("Tab 1 content").is_hidden()
         sleep(1.5)
-        self.inter_page.verify_element_visible(self.inter_page.tab_selected("1"))
 
     @pytest.mark.interactions
     @pytest.mark.TC10
     def test_tooltips_elements_interactions(self):
         print("Testing Tooltips elements interactions...")
 
-        self.inter_page.verify_text_visible("Tooltips")
-        self.inter_page.get_locator_by(locator_type="text", locator_value="Hover over me").hover(force=True)
+        expect(self.page.get_by_text("Tooltips")).to_be_visible()
+        self.inter_page.lbl_hover_me().hover(force=True)
         sleep(1.5)
-        tooltip = self.inter_page.get_locator_by(
-            locator_type="text",
-            locator_value="Tooltip text here",
-            parent_selector=".ui-tooltip-content"
-        )
-        self.inter_page.verify_element_visible(tooltip)
+
+        expect(self.inter_page.lbl_tooltip()).to_be_visible()
 
     @pytest.mark.interactions
     @pytest.mark.TC11
     def test_menu_elements_interactions(self):
         print("Testing Menu elements interactions...")
 
-        self.inter_page.verify_text_visible("Menu", is_exact_text=True)
-
-        for index, menu_item in enumerate(["Dashboard", "Users", "Settings", ], start=1):
-            attr_value = f"ui-id-{index}"
-
-            self.inter_page.click_element_by_text(menu_item, parent_selector=f"#{attr_value}")
-
-            self.inter_page.verify_element_attribute(
-                self.inter_page.menu_menu(),
-                attr_name="aria-activedescendant",
-                expected_attr_value=attr_value
-            )
+        self.inter_page.validate_menu_option(["Dashboard", "Users", "Settings"])
 
     @pytest.mark.interactions
     @pytest.mark.TC12
     def test_select_menu_elements_interactions(self):
         print("Testing Select Menu elements interactions...")
 
-        self.inter_page.verify_text_visible("Select Menu", is_exact_text=True)
-
-        for select_menu_item in ["Playwright", "QA", "Automation"]:
-            print(f" Select Menu Item to be selected : {select_menu_item}")
-            # since the element is not "select" we cannot use the selection_option, so simuilate ko nalang
-            self.inter_page.cmb_select_menu().click()
-            self.inter_page.cmb_item_select_menu().filter(has_text=select_menu_item).click()
-            expect(self.inter_page.cmb_item_select_menu_value()).to_have_text(select_menu_item)
-            sleep(1.2)
+        self.inter_page.validate_select_menu(["Playwright", "QA", "Automation"])
 
     @pytest.mark.interactions
     @pytest.mark.TC13
     def test_shadow_dom_demo_elements_interactions(self):
         print("Testing Shadow DOM Demo elements interactions...")
-        self.inter_page.verify_text_visible("Shadow DOM Demo")
+        expect(self.page.get_by_text("Shadow DOM Demo")).to_be_visible()
+        self.inter_page.btn_click_me().click()
 
-        self.inter_page.click_element_by_text("Click Me", parent_selector="#shadow-host")
-
-        result_text = self.inter_page.get_locator_by(
-            "text",
-            "Button clicked inside Shadow DOM!",
-            "#shadow-host")
-
-        self.inter_page.verify_element_visible(result_text)
+        expect(self.inter_page.lbl_shadow_dom_demo()).to_be_visible()
 
     @pytest.mark.interactions
     @pytest.mark.TC14
     def test_upload_file_elements_interactions(self):
         print("Testing Upload File elements interactions...")
 
-        self.inter_page.verify_text_visible("File Upload Demo")
-
+        expect(self.page.get_by_text("File Upload Demo")).to_be_visible()
         self.inter_page.upload_file(self.inter_page.txt_upload(), "test_upload_file", "jpg")
-        self.inter_page.click_element(self.inter_page.btn_upload())
+        self.inter_page.btn_upload().click()
         self.page.wait_for_load_state()
-        self.inter_page.verify_text_visible("Method Not Allowed")
+        expect(self.page.get_by_text("Method Not Allowed")).to_be_visible()
