@@ -17,4 +17,4 @@ class TestInfiniteScroll:
 
         infinite_scroll_page = InfiniteScrollPage.open(playwright_page)
         infinite_scroll_page.verify_header_text()
-        infinite_scroll_page.scroll_list()
+        infinite_scroll_page.verify_scroll_list_expected_value()
