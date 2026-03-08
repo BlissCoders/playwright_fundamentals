@@ -1,6 +1,5 @@
 import re
 from datetime import datetime
-from time import sleep
 
 import pytest
 from playwright.sync_api import Page, expect
@@ -94,7 +93,6 @@ class TestInteraction:
 
         expect(self.inter_page.txt_autocomplete()).to_have_value(autocomplete_value)
 
-        sleep(3)
         get_attr = self.inter_page.txt_autocomplete().get_attribute("autocomplete")
         assert get_attr == "off"
 
@@ -108,7 +106,6 @@ class TestInteraction:
         date_today = datetime.now().strftime("%m/%d/%Y")
         self.inter_page.txt_date_picker().fill(date_today)
         self.page.keyboard.press("Enter", delay=1500)
-        sleep(3)
 
     @pytest.mark.interactions
     @pytest.mark.TC8
@@ -138,7 +135,6 @@ class TestInteraction:
         get_attr = self.inter_page.tab_selected("1").get_attribute("aria-expanded")
         assert get_attr == "false"
         self.inter_page.lbl_text("Tab 1 content").is_hidden()
-        sleep(1.5)
 
     @pytest.mark.interactions
     @pytest.mark.TC10
@@ -147,7 +143,6 @@ class TestInteraction:
 
         expect(self.page.get_by_text("Tooltips")).to_be_visible()
         self.inter_page.lbl_hover_me().hover(force=True)
-        sleep(1.5)
 
         expect(self.inter_page.lbl_tooltip()).to_be_visible()
 

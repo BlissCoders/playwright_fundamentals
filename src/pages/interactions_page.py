@@ -1,7 +1,5 @@
 import re
 from pathlib import Path
-from time import sleep
-
 from playwright.sync_api import Locator, Page, expect
 
 
@@ -162,7 +160,6 @@ class InteractionsPage:
             self.cmb_select_menu().click()
             self.cmb_item_select_menu().filter(has_text=select_menu_item).click()
             expect(self.cmb_item_select_menu_value()).to_have_text(select_menu_item)
-            sleep(1.2)
 
     def upload_file(self, locator: Locator, file_name: str, file_type: str):
         print(f"Uploading file '{locator}' to file '{file_name}'")
@@ -172,4 +169,3 @@ class InteractionsPage:
 
         locator.set_input_files(file_path)
         expect(locator).to_have_value(re.compile(rf"{file_name}(\.[^.]+)?$"))
-        sleep(1.5)
