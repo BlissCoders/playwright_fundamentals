@@ -11,18 +11,19 @@ def playwright_page(request):
     test_name = request.node.name
     root_dir = request.config.rootpath
 
-    video_path = os.path.join(root_dir, "tests-results", "videos",str(test_name))
-    screenshot_path = os.path.join(root_dir,"tests-results","screenshots", str(test_name))
+    video_path = os.path.join(root_dir, "tests-results", "videos", str(test_name))
+    screenshot_path = os.path.join(root_dir, "tests-results", "screenshots", str(test_name))
 
-    #Create directories
+    # Create directories
     os.makedirs(video_path, exist_ok=True)
     os.makedirs(screenshot_path, exist_ok=True)
 
     # Boolean flag for easier reading
     save_recorded_video = os.environ.get("RECORD_VIDEO", "false").lower() == "true"
+    headless_env = os.environ.get("HEADLESS", "true").lower() == "true"
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(headless=headless_env)
 
         # Always enable recording if the ENV is true so Playwright captures the session
         context = browser.new_context(
@@ -61,17 +62,19 @@ def playwright_page(request):
             # Now it's safe to close browser
             browser.close()
 
+
 def pytest_configure(config):
     # This overrides the .ini setting with a timestamped filename
     now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     # Create report directory
     root_dir = config.rootpath
-    report_path = os.path.join(root_dir, "tests-results","reports")
+    report_path = os.path.join(root_dir, "tests-results", "reports")
     os.makedirs(report_path, exist_ok=True)
 
     config.option.htmlpath = f"{report_path}/report_{now}.html"
     config.option.self_contained_html = True
+
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):

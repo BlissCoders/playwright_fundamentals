@@ -1,0 +1,16 @@
+
+pytest tests/specs/test_day1_training.py -vv -s -n 2   // [-vv] for more detailed output, [-s] to disable output capture, and [-n 2] to run tests in parallel using 2 processes.
+pytest -m TC#Number -vv -s  // run via marker
+pytest -k TC#Number -vv -s  // run via keyword flag/expression
+
+
+after cloning the repo, we need to create a virtual environment and install the dependencies. We can do this using the following commands:
+git -m venv .env
+.venv\Scripts\activate
+
+pip install -r requirements.txt
+playwright install
+pip install python-dotenv
+pip install pytest-html
+pip install pytest-playwright
+pip install pytest-xdist
